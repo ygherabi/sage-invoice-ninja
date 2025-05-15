@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 import { type Profile, type Invoice, type InvoiceField, type ExtractionTemplate } from '@/types';
 
@@ -85,9 +86,10 @@ export const getInvoice = async (id: string) => {
 };
 
 export const createInvoice = async (invoice: Partial<Invoice>) => {
+  // Make sure we're inserting a single object, not an array
   const { data, error } = await supabase
     .from('invoices')
-    .insert([invoice])
+    .insert(invoice)
     .select()
     .single();
   
@@ -126,9 +128,10 @@ export const getInvoiceFields = async (invoiceId: string) => {
 };
 
 export const createInvoiceField = async (field: Partial<InvoiceField>) => {
+  // Make sure we're inserting a single object, not an array
   const { data, error } = await supabase
     .from('invoice_fields')
-    .insert([field])
+    .insert(field)
     .select()
     .single();
   
@@ -169,9 +172,10 @@ export const getExtractionTemplate = async (id: string) => {
 };
 
 export const createExtractionTemplate = async (template: Partial<ExtractionTemplate>) => {
+  // Make sure we're inserting a single object, not an array
   const { data, error } = await supabase
     .from('extraction_templates')
-    .insert([template])
+    .insert(template)
     .select()
     .single();
   
@@ -194,3 +198,4 @@ export const getInvoiceFileUrl = async (filePath: string) => {
   
   return data.publicUrl;
 };
+
