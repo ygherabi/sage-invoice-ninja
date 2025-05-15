@@ -85,7 +85,13 @@ export const getInvoice = async (id: string) => {
   return data as Invoice | null;
 };
 
-export const createInvoice = async (invoice: Partial<Invoice>) => {
+// Correction : Nous devons spécifier un type qui garantit que les champs obligatoires sont présents
+type CreateInvoiceParams = {
+  user_id: string;
+  title: string;
+} & Partial<Omit<Invoice, 'user_id' | 'title'>>;
+
+export const createInvoice = async (invoice: CreateInvoiceParams) => {
   // Make sure we're inserting a single object, not an array
   const { data, error } = await supabase
     .from('invoices')
@@ -127,7 +133,12 @@ export const getInvoiceFields = async (invoiceId: string) => {
   return data as InvoiceField[] | null;
 };
 
-export const createInvoiceField = async (field: Partial<InvoiceField>) => {
+// Correction : Nous devons spécifier un type qui garantit que field_name est obligatoire
+type CreateInvoiceFieldParams = {
+  field_name: string;
+} & Partial<Omit<InvoiceField, 'field_name'>>;
+
+export const createInvoiceField = async (field: CreateInvoiceFieldParams) => {
   // Make sure we're inserting a single object, not an array
   const { data, error } = await supabase
     .from('invoice_fields')
@@ -171,7 +182,13 @@ export const getExtractionTemplate = async (id: string) => {
   return data as ExtractionTemplate | null;
 };
 
-export const createExtractionTemplate = async (template: Partial<ExtractionTemplate>) => {
+// Correction : Nous devons spécifier un type qui garantit que name et schema sont obligatoires
+type CreateExtractionTemplateParams = {
+  name: string;
+  schema: Record<string, any>;
+} & Partial<Omit<ExtractionTemplate, 'name' | 'schema'>>;
+
+export const createExtractionTemplate = async (template: CreateExtractionTemplateParams) => {
   // Make sure we're inserting a single object, not an array
   const { data, error } = await supabase
     .from('extraction_templates')
@@ -198,4 +215,3 @@ export const getInvoiceFileUrl = async (filePath: string) => {
   
   return data.publicUrl;
 };
-
