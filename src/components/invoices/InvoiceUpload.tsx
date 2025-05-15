@@ -87,10 +87,15 @@ const InvoiceUpload = () => {
       }
       
       // Update invoice with file path
-      await createInvoice({
+      const { error: updateError } = await createInvoice({
         id: invoice.id,
         file_path: filePath,
       });
+      
+      if (updateError) {
+        clearInterval(progressInterval);
+        throw new Error(updateError.message);
+      }
       
       clearInterval(progressInterval);
       setUploadProgress(100);

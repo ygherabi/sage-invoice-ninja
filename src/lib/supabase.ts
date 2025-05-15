@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 import { type Profile, type Invoice, type InvoiceField, type ExtractionTemplate } from '@/types';
 
@@ -85,21 +84,40 @@ export const getInvoice = async (id: string) => {
   return data as Invoice | null;
 };
 
-// Correction : Nous devons spécifier un type qui garantit que les champs obligatoires sont présents
+// Type for creating a new invoice
 type CreateInvoiceParams = {
   user_id: string;
   title: string;
 } & Partial<Omit<Invoice, 'user_id' | 'title'>>;
 
-export const createInvoice = async (invoice: CreateInvoiceParams) => {
-  // Make sure we're inserting a single object, not an array
-  const { data, error } = await supabase
-    .from('invoices')
-    .insert(invoice)
-    .select()
-    .single();
-  
-  return { data, error };
+// Type for updating an existing invoice
+type UpdateInvoiceParams = {
+  id: string;
+} & Partial<Omit<Invoice, 'id'>>;
+
+export const createInvoice = async (invoice: CreateInvoiceParams | UpdateInvoiceParams) => {
+  // Check if this is an update (has id) or a create operation
+  if ('id' in invoice) {
+    // This is an update operation
+    const { id, ...updateData } = invoice;
+    const { data, error } = await supabase
+      .from('invoices')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data, error };
+  } else {
+    // This is a create operation
+    const { data, error } = await supabase
+      .from('invoices')
+      .insert(invoice)
+      .select()
+      .single();
+    
+    return { data, error };
+  }
 };
 
 export const updateInvoice = async (id: string, invoice: Partial<Invoice>) => {
