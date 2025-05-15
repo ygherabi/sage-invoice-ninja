@@ -65,6 +65,131 @@ export type Database = {
         }
         Relationships: []
       }
+      extraction_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          schema: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          schema: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          schema?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      invoice_fields: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          field_name: string
+          field_value: string | null
+          id: string
+          invoice_id: string | null
+          position_data: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          field_name: string
+          field_value?: string | null
+          id?: string
+          invoice_id?: string | null
+          position_data?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          field_name?: string
+          field_value?: string | null
+          id?: string
+          invoice_id?: string | null
+          position_data?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_fields_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string | null
+          due_date: string | null
+          file_path: string | null
+          file_type: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          metadata: Json | null
+          status: string | null
+          supplier: string | null
+          tax_amount: number | null
+          title: string
+          total_amount: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          due_date?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          metadata?: Json | null
+          status?: string | null
+          supplier?: string | null
+          tax_amount?: number | null
+          title: string
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          due_date?: string | null
+          file_path?: string | null
+          file_type?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          metadata?: Json | null
+          status?: string | null
+          supplier?: string | null
+          tax_amount?: number | null
+          title?: string
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       legal: {
         Row: {
           created_at: string
@@ -77,6 +202,33 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
