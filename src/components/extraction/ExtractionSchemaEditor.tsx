@@ -73,13 +73,13 @@ const ExtractionSchemaEditor = ({ template, onSave }: ExtractionSchemaEditorProp
         // Sinon, nous créons un nouveau template
         const { data, error } = await createExtractionTemplate({
           name,
-          schema: fields,
+          schema: fields as Record<string, any>,
           is_public: isPublic,
         });
         
         if (error) throw error;
         
-        if (data && onSave) onSave(data);
+        if (data && onSave) onSave(data as ExtractionTemplate);
         
         toast({
           title: 'Schéma créé',

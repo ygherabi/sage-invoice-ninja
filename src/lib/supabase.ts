@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { type Profile, type Invoice, type InvoiceField, type ExtractionTemplate } from '@/types';
 
@@ -204,7 +203,9 @@ export const getExtractionTemplate = async (id: string) => {
 type CreateExtractionTemplateParams = {
   name: string;
   schema: Record<string, any>;
-} & Partial<Omit<ExtractionTemplate, 'name' | 'schema'>>;
+  is_public?: boolean;
+  user_id?: string;
+};
 
 export const createExtractionTemplate = async (template: CreateExtractionTemplateParams) => {
   // Make sure we're inserting a single object, not an array
