@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileText, X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { uploadInvoiceFile, createInvoice, getCurrentUser } from '@/lib/supabase';
 
 const UploadSection = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -54,7 +57,7 @@ const UploadSection = () => {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
   
-  const startUpload = () => {
+  const startUpload = async () => {
     if (files.length === 0) {
       toast({
         title: "Aucun fichier sélectionné",
@@ -66,15 +69,79 @@ const UploadSection = () => {
     
     setIsUploading(true);
     
-    // Simulate upload process
-    setTimeout(() => {
-      setIsUploading(false);
+    try {
+      // Récupérer l'utilisateur courant
+      const user = await getCurrentUser();
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
+      
+      const uploadedInvoiceIds = [];
+      
+      // Traitement de chaque fichier
+      for (const file of files) {
+        // Créer d'abord une entrée de facture
+        const { data: invoiceData, error: invoiceError } = await createInvoice({
+          user_id: user.id,
+          title: file.name.replace(/\.[^/.]+$/, ""), // Nom de fichier sans extension
+          status: 'pending'
+        });
+        
+        if (invoiceError || !invoiceData) {
+          console.error("Erreur lors de la création de la facture:", invoiceError);
+          throw new Error("Échec de la création de la facture");
+        }
+        
+        // Générer un chemin de fichier unique
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${user.id}/${invoiceData.id}/${Date.now()}.${fileExt}`;
+        
+        // Téléverser le fichier
+        const { data: fileData, error: fileError } = await uploadInvoiceFile(file, filePath);
+        
+        if (fileError || !fileData) {
+          console.error("Erreur lors du téléversement du fichier:", fileError);
+          throw new Error("Échec du téléversement du fichier");
+        }
+        
+        // Mettre à jour la facture avec le chemin du fichier
+        const { error: updateError } = await createInvoice({
+          id: invoiceData.id,
+          file_path: filePath,
+          file_type: file.type
+        });
+        
+        if (updateError) {
+          console.error("Erreur lors de la mise à jour de la facture:", updateError);
+          throw new Error("Échec de la mise à jour des informations de la facture");
+        }
+        
+        uploadedInvoiceIds.push(invoiceData.id);
+      }
+      
       toast({
         title: "Téléversement réussi",
         description: `${files.length} fichier(s) ont été téléversés avec succès.`
       });
+      
+      // Rediriger vers la première facture téléversée pour l'analyse
+      if (uploadedInvoiceIds.length > 0) {
+        navigate(`/invoices/${uploadedInvoiceIds[0]}`);
+      } else {
+        navigate('/invoices');
+      }
+      
       setFiles([]);
-    }, 2000);
+    } catch (error) {
+      console.error("Erreur lors du traitement des fichiers:", error);
+      toast({
+        title: "Erreur de téléversement",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors du téléversement",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
   
   return (

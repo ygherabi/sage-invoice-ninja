@@ -30,7 +30,6 @@ export interface ExtractionResult {
 export const extractDataFromDocument = async (fileUrl: string): Promise<ExtractionResult> => {
   try {
     // Simulation d'appel à un service d'OCR comme Azure Document Intelligence
-    // Dans une implémentation réelle, nous ferions un appel à une API Azure
     console.log('Extracting data from document:', fileUrl);
     
     // Simuler un délai pour l'OCR
@@ -64,6 +63,9 @@ export const saveExtractedData = async (
   extractionResult: ExtractionResult
 ): Promise<{ success: boolean; error?: any }> => {
   try {
+    console.log("Saving extracted data for invoice:", invoice.id);
+    console.log("Extraction result:", extractionResult);
+    
     // Mettre à jour les informations de base de la facture
     const { error: updateError } = await createInvoice({
       id: invoice.id,
@@ -76,17 +78,28 @@ export const saveExtractedData = async (
       status: 'processed'
     });
     
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Error updating invoice:", updateError);
+      throw updateError;
+    }
+    
+    console.log("Invoice updated successfully, now saving fields");
     
     // Enregistrer tous les champs extraits
     for (const [field_name, data] of Object.entries(extractionResult.fields)) {
-      await createInvoiceField({
+      const fieldResult = await createInvoiceField({
         invoice_id: invoice.id,
         field_name,
         field_value: data.value,
         confidence: data.confidence,
         position_data: data.position || null,
       });
+      
+      if (fieldResult.error) {
+        console.error(`Error saving field ${field_name}:`, fieldResult.error);
+      } else {
+        console.log(`Field ${field_name} saved successfully`);
+      }
     }
     
     return { success: true };

@@ -34,7 +34,9 @@ const DocumentAnalysisViewer = ({
   const loadDocumentUrl = async () => {
     if (invoice.file_path) {
       try {
+        console.log("Loading document URL for:", invoice.file_path);
         const url = await getInvoiceFileUrl(invoice.file_path);
+        console.log("Document URL loaded:", url);
         setDocumentUrl(url);
       } catch (error) {
         console.error('Error loading document URL:', error);
@@ -59,11 +61,20 @@ const DocumentAnalysisViewer = ({
 
     setIsAnalyzing(true);
     try {
+      console.log("Starting document analysis for invoice:", invoice.id);
+      
       // Extraire les données avec l'IA
+      toast({
+        title: 'Analyse en cours',
+        description: 'Extraction des données du document...'
+      });
+      
       const extractionResult = await extractDataFromDocument(documentUrl);
+      console.log("Extraction result:", extractionResult);
       
       // Sauvegarder les données extraites
       const saveResult = await saveExtractedData(invoice, extractionResult);
+      console.log("Save result:", saveResult);
       
       if (saveResult.success) {
         toast({
