@@ -4,7 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import InvoiceList from '@/components/invoices/InvoiceList';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Upload } from 'lucide-react';
+import { Upload, FileSearch } from 'lucide-react';
 
 const InvoicesPage = () => {
   return (
@@ -22,12 +22,20 @@ const InvoicesPage = () => {
                 <h1 className="text-3xl font-bold text-gray-900">Mes factures</h1>
                 <p className="text-gray-500">Gérez et consultez toutes vos factures</p>
               </div>
-              <Button className="bg-invoice-blue hover:bg-invoice-blue-dark" asChild>
-                <Link to="/upload">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Téléverser
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" className="bg-white" asChild>
+                  <Link to="/templates">
+                    <FileSearch className="mr-2 h-4 w-4" />
+                    Schémas d'extraction
+                  </Link>
+                </Button>
+                <Button className="bg-invoice-blue hover:bg-invoice-blue-dark" asChild>
+                  <Link to="/upload">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Téléverser
+                  </Link>
+                </Button>
+              </div>
             </div>
             
             {/* Filters and Search - Will be implemented later */}

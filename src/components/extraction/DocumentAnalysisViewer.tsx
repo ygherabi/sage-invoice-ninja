@@ -1,0 +1,215 @@
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Download, Eye, RefreshCw, X } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { type Invoice, type InvoiceField } from '@/types';
+import { getInvoiceFileUrl } from '@/lib/supabase';
+import ExtractedDataViewer from './ExtractedDataViewer';
+import { extractDataFromDocument, saveExtractedData } from '@/lib/ai-extraction';
+
+type DocumentAnalysisViewerProps = {
+  invoice: Invoice;
+  fields: InvoiceField[];
+  onAnalysisComplete?: () => void;
+};
+
+const DocumentAnalysisViewer = ({ 
+  invoice, 
+  fields, 
+  onAnalysisComplete 
+}: DocumentAnalysisViewerProps) => {
+  const { toast } = useToast();
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showFullScreen, setShowFullScreen] = useState(false);
+
+  useEffect(() => {
+    if (invoice.file_path) {
+      loadDocumentUrl();
+    }
+  }, [invoice.file_path]);
+
+  const loadDocumentUrl = async () => {
+    if (invoice.file_path) {
+      try {
+        const url = await getInvoiceFileUrl(invoice.file_path);
+        setDocumentUrl(url);
+      } catch (error) {
+        console.error('Error loading document URL:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Impossible de charger l\'aperçu du document'
+        });
+      }
+    }
+  };
+
+  const handleAnalyzeDocument = async () => {
+    if (!documentUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Aucun document à analyser'
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      // Extraire les données avec l'IA
+      const extractionResult = await extractDataFromDocument(documentUrl);
+      
+      // Sauvegarder les données extraites
+      const saveResult = await saveExtractedData(invoice, extractionResult);
+      
+      if (saveResult.success) {
+        toast({
+          title: 'Analyse réussie',
+          description: 'Les données ont été extraites avec succès du document'
+        });
+        if (onAnalysisComplete) onAnalysisComplete();
+      } else {
+        throw new Error('Erreur lors de la sauvegarde des données');
+      }
+    } catch (error) {
+      console.error('Error analyzing document:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur d\'analyse',
+        description: 'Une erreur est survenue lors de l\'analyse du document'
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Document Preview Card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Aperçu du Document</CardTitle>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.open(documentUrl || '#', '_blank')}
+              disabled={!documentUrl}
+            >
+              <Download className="h-4 w-4 mr-1" /> Télécharger
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowFullScreen(true)}
+              disabled={!documentUrl}
+            >
+              <Eye className="h-4 w-4 mr-1" /> Plein écran
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center bg-gray-100 p-0 min-h-[400px]">
+          {documentUrl ? (
+            <div className="w-full h-full min-h-[400px] flex items-center justify-center">
+              {invoice.file_type?.includes('pdf') ? (
+                <iframe 
+                  src={documentUrl}
+                  className="w-full h-full min-h-[400px]"
+                  title="PDF Preview"
+                />
+              ) : (
+                <img
+                  src={documentUrl}
+                  alt="Document preview"
+                  className="max-w-full max-h-[400px] object-contain"
+                />
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 text-gray-500">
+              <img 
+                src="https://cdn-icons-png.freepik.com/512/3143/3143460.png" 
+                alt="Invoice placeholder" 
+                className="w-32 h-32 mb-4 opacity-50"
+              />
+              <p>Aperçu non disponible</p>
+              <p className="text-sm">{invoice.file_path || 'Aucun fichier'}</p>
+            </div>
+          )}
+        </CardContent>
+        
+        {/* Analyze button footer */}
+        <div className="px-6 py-4 border-t">
+          <Button 
+            onClick={handleAnalyzeDocument}
+            disabled={isAnalyzing || !documentUrl || invoice.status === 'validated'}
+            className="w-full"
+          >
+            {isAnalyzing ? (
+              <>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-b-transparent border-white"></div>
+                Analyse en cours...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {invoice.status === 'pending' 
+                  ? 'Analyser avec IA' 
+                  : 'Relancer l\'analyse'}
+              </>
+            )}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Extracted Data Card */}
+      <ExtractedDataViewer 
+        invoice={invoice} 
+        fields={fields} 
+        onValidationComplete={onAnalysisComplete}
+      />
+      
+      {/* Full Screen Preview Modal */}
+      {showFullScreen && documentUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="font-medium">
+                {invoice.title || 'Aperçu du document'}
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowFullScreen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-100">
+              {invoice.file_type?.includes('pdf') ? (
+                <iframe 
+                  src={documentUrl}
+                  className="w-full h-full"
+                  title="PDF Preview" 
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full p-4">
+                  <img 
+                    src={documentUrl}
+                    alt="Document preview"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DocumentAnalysisViewer;

@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import InvoicesPage from "./pages/InvoicesPage";
 import InvoiceUploadPage from "./pages/InvoiceUploadPage";
+import InvoiceAnalysisPage from "./pages/InvoiceAnalysisPage";
 import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,11 @@ const App = () => (
             <Route path="/upload" element={
               <ProtectedRoute>
                 <InvoiceUploadPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/invoice/:invoiceId" element={
+              <ProtectedRoute>
+                <InvoiceAnalysisPage />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
