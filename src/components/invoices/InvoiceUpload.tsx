@@ -72,7 +72,7 @@ const InvoiceUpload = () => {
       const { data: invoice, error: invoiceError } = await createInvoice({
         user_id: user.id,
         title: title || file.name,
-        status: 'pending', // Explicitly use the literal string type value
+        status: 'pending' as const, // Use const assertion to ensure type safety
         file_type: file.type,
       });
       
