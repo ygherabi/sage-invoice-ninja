@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Eye, RefreshCw, X, AlertCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { type Invoice, type InvoiceField } from '@/types';
 import { getInvoiceFileUrl, checkFileExists } from '@/lib/supabase';
 import ExtractedDataViewer from './ExtractedDataViewer';
@@ -43,7 +43,8 @@ const DocumentAnalysisViewer = ({
         
         if (!exists) {
           toast({
-            variant: 'warning',
+            // Change from 'warning' to 'default' with an amber style
+            variant: 'default',
             title: 'Fichier non trouvé',
             description: 'Le fichier associé à cette facture n\'est pas disponible.'
           });
