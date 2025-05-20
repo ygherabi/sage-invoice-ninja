@@ -83,14 +83,14 @@ export const getInvoice = async (id: string) => {
   return data as Invoice | null;
 };
 
-// Type for creating a new invoice
+// Type pour créer une nouvelle facture avec un status typé explicitement
 type CreateInvoiceParams = {
   user_id: string;
   title: string;
   status?: 'pending' | 'processed' | 'error' | 'validated';
 } & Partial<Omit<Invoice, 'user_id' | 'title' | 'status'>>;
 
-// Type for updating an existing invoice
+// Type pour mettre à jour une facture existante avec un status typé explicitement
 type UpdateInvoiceParams = {
   id: string;
   status?: 'pending' | 'processed' | 'error' | 'validated';

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { UploadCloud, Loader2 } from 'lucide-react';
 import { extractDataFromDocument, saveExtractedData } from '@/lib/ai-extraction';
+import { type Invoice } from '@/types';
 
 const InvoiceUpload = () => {
   const { user } = useAuth();
@@ -67,12 +68,12 @@ const InvoiceUpload = () => {
         });
       }, 300);
       
-      // Create invoice record in database - Note: explicitly setting status to a valid literal value
+      // Create invoice record in database - Nous utilisons une valeur littérale typée pour status
       console.log('Création de l\'enregistrement de facture dans la base de données...');
       const { data: invoice, error: invoiceError } = await createInvoice({
         user_id: user.id,
         title: title || file.name,
-        status: 'pending' as const, // Use const assertion to ensure type safety
+        status: 'pending' as 'pending' | 'processed' | 'error' | 'validated',
         file_type: file.type,
       });
       
@@ -97,11 +98,14 @@ const InvoiceUpload = () => {
       
       console.log('Fichier téléversé avec succès');
       
-      // Update invoice with file path
+      // Update invoice with file path - nous utilisons également une assertion de type ici
       console.log('Mise à jour de la facture avec le chemin du fichier...');
       const { error: updateError } = await createInvoice({
         id: invoice.id,
         file_path: filePath,
+      } as {
+        id: string;
+        file_path: string;
       });
       
       if (updateError) {
@@ -121,7 +125,7 @@ const InvoiceUpload = () => {
         console.log('Extraction réussie:', extractionResult);
         
         console.log('Sauvegarde des données extraites...');
-        const saveResult = await saveExtractedData(invoice, extractionResult);
+        const saveResult = await saveExtractedData(invoice as Invoice, extractionResult);
         
         if (!saveResult.success) {
           console.error('Erreur lors de la sauvegarde des données extraites:', saveResult.error);
