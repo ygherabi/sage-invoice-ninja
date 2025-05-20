@@ -87,12 +87,14 @@ export const getInvoice = async (id: string) => {
 type CreateInvoiceParams = {
   user_id: string;
   title: string;
-} & Partial<Omit<Invoice, 'user_id' | 'title'>>;
+  status?: 'pending' | 'processed' | 'error' | 'validated';
+} & Partial<Omit<Invoice, 'user_id' | 'title' | 'status'>>;
 
 // Type for updating an existing invoice
 type UpdateInvoiceParams = {
   id: string;
-} & Partial<Omit<Invoice, 'id'>>;
+  status?: 'pending' | 'processed' | 'error' | 'validated';
+} & Partial<Omit<Invoice, 'id' | 'status'>>;
 
 export const createInvoice = async (invoice: CreateInvoiceParams | UpdateInvoiceParams) => {
   // Check if this is an update (has id) or a create operation

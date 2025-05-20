@@ -67,12 +67,12 @@ const InvoiceUpload = () => {
         });
       }, 300);
       
-      // Create invoice record in database
+      // Create invoice record in database - Note: explicitly setting status to a valid literal value
       console.log('Création de l\'enregistrement de facture dans la base de données...');
       const { data: invoice, error: invoiceError } = await createInvoice({
         user_id: user.id,
         title: title || file.name,
-        status: 'pending',
+        status: 'pending', // Explicitly use the literal string type value
         file_type: file.type,
       });
       
