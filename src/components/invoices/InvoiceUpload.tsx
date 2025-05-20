@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createInvoice, uploadInvoiceFile } from '@/lib/supabase';
+import { createInvoice, uploadInvoiceFile, getInvoiceFileUrl } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { UploadCloud, Loader2 } from 'lucide-react';
+import { extractDataFromDocument, saveExtractedData } from '@/lib/ai-extraction';
 
 const InvoiceUpload = () => {
   const { user } = useAuth();
@@ -56,6 +57,8 @@ const InvoiceUpload = () => {
     setUploadProgress(0);
     
     try {
+      console.log('Début du processus de téléversement pour:', file.name);
+      
       // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -65,6 +68,7 @@ const InvoiceUpload = () => {
       }, 300);
       
       // Create invoice record in database
+      console.log('Création de l\'enregistrement de facture dans la base de données...');
       const { data: invoice, error: invoiceError } = await createInvoice({
         user_id: user.id,
         title: title || file.name,
@@ -74,19 +78,27 @@ const InvoiceUpload = () => {
       
       if (invoiceError) {
         clearInterval(progressInterval);
+        console.error('Erreur lors de la création de la facture:', invoiceError);
         throw new Error(invoiceError.message);
       }
       
+      console.log('Facture créée avec succès:', invoice.id);
+      
       // Upload file to storage
       const filePath = `${user.id}/${invoice.id}/${file.name}`;
+      console.log('Téléversement du fichier vers le stockage:', filePath);
       const { error: uploadError } = await uploadInvoiceFile(file, filePath);
       
       if (uploadError) {
         clearInterval(progressInterval);
+        console.error('Erreur lors du téléversement du fichier:', uploadError);
         throw new Error(uploadError.message);
       }
       
+      console.log('Fichier téléversé avec succès');
+      
       // Update invoice with file path
+      console.log('Mise à jour de la facture avec le chemin du fichier...');
       const { error: updateError } = await createInvoice({
         id: invoice.id,
         file_path: filePath,
@@ -94,7 +106,34 @@ const InvoiceUpload = () => {
       
       if (updateError) {
         clearInterval(progressInterval);
+        console.error('Erreur lors de la mise à jour de la facture:', updateError);
         throw new Error(updateError.message);
+      }
+      
+      // Process document extraction
+      try {
+        console.log('Récupération de l\'URL du fichier pour extraction...');
+        const fileUrl = await getInvoiceFileUrl(filePath);
+        console.log('URL du fichier obtenue:', fileUrl);
+        
+        console.log('Début de l\'extraction des données...');
+        const extractionResult = await extractDataFromDocument(fileUrl);
+        console.log('Extraction réussie:', extractionResult);
+        
+        console.log('Sauvegarde des données extraites...');
+        const saveResult = await saveExtractedData(invoice, extractionResult);
+        
+        if (!saveResult.success) {
+          console.error('Erreur lors de la sauvegarde des données extraites:', saveResult.error);
+        } else {
+          console.log('Données extraites sauvegardées avec succès');
+        }
+      } catch (extractionError) {
+        console.error('Erreur lors du traitement d\'extraction:', extractionError);
+        toast({
+          title: "Avertissement",
+          description: "Le fichier a été téléversé, mais l'extraction automatique a échoué. Vous pourrez valider manuellement les données.",
+        });
       }
       
       clearInterval(progressInterval);
@@ -107,9 +146,10 @@ const InvoiceUpload = () => {
       
       // Redirect to invoice details after short delay
       setTimeout(() => {
-        navigate(`/invoices/${invoice.id}`);
+        navigate(`/invoice/${invoice.id}`);
       }, 1500);
     } catch (err: any) {
+      console.error('Erreur complète lors du téléversement:', err);
       toast({
         variant: "destructive",
         title: "Erreur de téléversement",

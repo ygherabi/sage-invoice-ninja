@@ -1,4 +1,3 @@
-
 import { createInvoice, createInvoiceField, getInvoiceFields, updateInvoiceField } from '@/lib/supabase';
 import { type Invoice, type InvoiceField } from '@/types';
 
@@ -30,7 +29,7 @@ export interface ExtractionResult {
 export const extractDataFromDocument = async (fileUrl: string): Promise<ExtractionResult> => {
   try {
     // Simulation d'appel à un service d'OCR comme Azure Document Intelligence
-    console.log('Extracting data from document:', fileUrl);
+    console.log('Extraction des données du document:', fileUrl);
     
     // Simuler un délai pour l'OCR
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -50,9 +49,10 @@ export const extractDataFromDocument = async (fileUrl: string): Promise<Extracti
       rawText: 'Ceci est le texte brut extrait du document...'
     };
     
+    console.log('Données extraites avec succès:', extractedData);
     return extractedData;
   } catch (error) {
-    console.error('Error extracting data from document:', error);
+    console.error('Erreur lors de l\'extraction des données du document:', error);
     throw new Error('Échec de l\'extraction des données du document');
   }
 };
@@ -63,48 +63,91 @@ export const saveExtractedData = async (
   extractionResult: ExtractionResult
 ): Promise<{ success: boolean; error?: any }> => {
   try {
-    console.log("Saving extracted data for invoice:", invoice.id);
-    console.log("Extraction result:", extractionResult);
+    console.log("Sauvegarde des données extraites pour la facture:", invoice.id);
+    console.log("Résultat d'extraction:", extractionResult);
     
-    // Mettre à jour les informations de base de la facture
-    const { error: updateError } = await createInvoice({
-      id: invoice.id,
-      invoice_number: extractionResult.fields.invoice_number?.value,
-      invoice_date: extractionResult.fields.date?.value,
-      due_date: extractionResult.fields.due_date?.value,
-      supplier: extractionResult.fields.supplier?.value,
-      total_amount: extractionResult.fields.total_amount ? parseFloat(extractionResult.fields.total_amount.value) : null,
-      tax_amount: extractionResult.fields.tax_amount ? parseFloat(extractionResult.fields.tax_amount.value) : null,
-      status: 'processed'
-    });
-    
-    if (updateError) {
-      console.error("Error updating invoice:", updateError);
-      throw updateError;
+    // Vérifier que les champs essentiels sont présents
+    if (!extractionResult.fields) {
+      console.error("Les champs extraits sont manquants");
+      return { success: false, error: "Données d'extraction invalides" };
     }
     
-    console.log("Invoice updated successfully, now saving fields");
+    // Préparer les données à mettre à jour
+    const invoiceUpdateData: any = {
+      id: invoice.id,
+      status: 'processed'
+    };
+    
+    // Ajouter les champs extraits s'ils existent
+    if (extractionResult.fields.invoice_number?.value) {
+      invoiceUpdateData.invoice_number = extractionResult.fields.invoice_number.value;
+    }
+    
+    if (extractionResult.fields.date?.value) {
+      invoiceUpdateData.invoice_date = extractionResult.fields.date.value;
+    }
+    
+    if (extractionResult.fields.due_date?.value) {
+      invoiceUpdateData.due_date = extractionResult.fields.due_date.value;
+    }
+    
+    if (extractionResult.fields.supplier?.value) {
+      invoiceUpdateData.supplier = extractionResult.fields.supplier.value;
+    }
+    
+    if (extractionResult.fields.total_amount?.value) {
+      const totalAmount = parseFloat(extractionResult.fields.total_amount.value);
+      if (!isNaN(totalAmount)) {
+        invoiceUpdateData.total_amount = totalAmount;
+      }
+    }
+    
+    if (extractionResult.fields.tax_amount?.value) {
+      const taxAmount = parseFloat(extractionResult.fields.tax_amount.value);
+      if (!isNaN(taxAmount)) {
+        invoiceUpdateData.tax_amount = taxAmount;
+      }
+    }
+    
+    // Mettre à jour les informations de base de la facture
+    console.log("Mise à jour de la facture avec les données:", invoiceUpdateData);
+    const { error: updateError } = await createInvoice(invoiceUpdateData);
+    
+    if (updateError) {
+      console.error("Erreur lors de la mise à jour de la facture:", updateError);
+      return { success: false, error: updateError };
+    }
+    
+    console.log("Facture mise à jour avec succès, enregistrement des champs");
     
     // Enregistrer tous les champs extraits
-    for (const [field_name, data] of Object.entries(extractionResult.fields)) {
-      const fieldResult = await createInvoiceField({
+    const fieldPromises = Object.entries(extractionResult.fields).map(async ([field_name, data]) => {
+      const fieldData = {
         invoice_id: invoice.id,
         field_name,
         field_value: data.value,
         confidence: data.confidence,
         position_data: data.position || null,
-      });
+      };
       
-      if (fieldResult.error) {
-        console.error(`Error saving field ${field_name}:`, fieldResult.error);
-      } else {
-        console.log(`Field ${field_name} saved successfully`);
-      }
+      console.log(`Sauvegarde du champ ${field_name}:`, fieldData);
+      return createInvoiceField(fieldData);
+    });
+    
+    const fieldResults = await Promise.allSettled(fieldPromises);
+    
+    // Vérifier si des erreurs se sont produites
+    const errors = fieldResults
+      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+      .map(result => result.reason);
+    
+    if (errors.length > 0) {
+      console.warn("Certains champs n'ont pas pu être sauvegardés:", errors);
     }
     
     return { success: true };
   } catch (error) {
-    console.error('Error saving extracted data:', error);
+    console.error('Erreur lors de la sauvegarde des données extraites:', error);
     return { success: false, error };
   }
 };
