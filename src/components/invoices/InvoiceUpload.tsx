@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
+import { Progress } from '@/components/ui/progress';
 import { UploadCloud, Loader2 } from 'lucide-react';
 import { extractDataFromDocument, saveExtractedData } from '@/lib/ai-extraction';
 import { type Invoice } from '@/types';
@@ -20,6 +21,7 @@ const InvoiceUpload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState<string>('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -56,49 +58,47 @@ const InvoiceUpload = () => {
     
     setIsUploading(true);
     setUploadProgress(0);
+    setProcessingStep('Initialisation du téléversement...');
     
     try {
       console.log('Début du processus de téléversement pour:', file.name);
       
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          const newProgress = prev + 5;
-          return newProgress >= 90 ? 90 : newProgress;
-        });
-      }, 300);
-      
-      // Create invoice record in database - Nous utilisons une valeur littérale typée pour status
+      // Create invoice record in database
+      setProcessingStep('Création de l\'enregistrement de facture...');
       console.log('Création de l\'enregistrement de facture dans la base de données...');
+      const invoiceStatus = 'pending' as 'pending' | 'processed' | 'error' | 'validated';
       const { data: invoice, error: invoiceError } = await createInvoice({
         user_id: user.id,
         title: title || file.name,
-        status: 'pending' as 'pending' | 'processed' | 'error' | 'validated',
+        status: invoiceStatus,
         file_type: file.type,
       });
       
       if (invoiceError) {
-        clearInterval(progressInterval);
         console.error('Erreur lors de la création de la facture:', invoiceError);
         throw new Error(invoiceError.message);
       }
       
       console.log('Facture créée avec succès:', invoice.id);
       
-      // Upload file to storage
+      // Upload file to storage with progress tracking
       const filePath = `${user.id}/${invoice.id}/${file.name}`;
+      setProcessingStep('Téléversement du fichier...');
       console.log('Téléversement du fichier vers le stockage:', filePath);
-      const { error: uploadError } = await uploadInvoiceFile(file, filePath);
+      
+      const { error: uploadError } = await uploadInvoiceFile(file, filePath, (progress) => {
+        setUploadProgress(progress);
+      });
       
       if (uploadError) {
-        clearInterval(progressInterval);
         console.error('Erreur lors du téléversement du fichier:', uploadError);
         throw new Error(uploadError.message);
       }
       
       console.log('Fichier téléversé avec succès');
       
-      // Update invoice with file path - nous utilisons également une assertion de type ici
+      // Update invoice with file path
+      setProcessingStep('Mise à jour des informations de facture...');
       console.log('Mise à jour de la facture avec le chemin du fichier...');
       const { error: updateError } = await createInvoice({
         id: invoice.id,
@@ -109,21 +109,26 @@ const InvoiceUpload = () => {
       });
       
       if (updateError) {
-        clearInterval(progressInterval);
         console.error('Erreur lors de la mise à jour de la facture:', updateError);
         throw new Error(updateError.message);
       }
       
       // Process document extraction
       try {
+        setProcessingStep('Extraction des données du document...');
         console.log('Récupération de l\'URL du fichier pour extraction...');
         const fileUrl = await getInvoiceFileUrl(filePath);
         console.log('URL du fichier obtenue:', fileUrl);
+        
+        if (!fileUrl) {
+          throw new Error("Impossible d'obtenir l'URL du fichier");
+        }
         
         console.log('Début de l\'extraction des données...');
         const extractionResult = await extractDataFromDocument(fileUrl);
         console.log('Extraction réussie:', extractionResult);
         
+        setProcessingStep('Sauvegarde des données extraites...');
         console.log('Sauvegarde des données extraites...');
         const saveResult = await saveExtractedData(invoice as Invoice, extractionResult);
         
@@ -140,7 +145,7 @@ const InvoiceUpload = () => {
         });
       }
       
-      clearInterval(progressInterval);
+      setProcessingStep('Finalisation...');
       setUploadProgress(100);
       
       toast({
@@ -160,6 +165,7 @@ const InvoiceUpload = () => {
         description: err.message || "Une erreur s'est produite lors du téléversement.",
       });
       setIsUploading(false);
+      setProcessingStep('');
     }
   };
 
@@ -224,14 +230,12 @@ const InvoiceUpload = () => {
           </div>
           
           {isUploading && (
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                {uploadProgress === 100 ? 'Terminé !' : `Téléversement en cours... ${uploadProgress}%`}
-              </p>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{processingStep}</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
             </div>
           )}
           
