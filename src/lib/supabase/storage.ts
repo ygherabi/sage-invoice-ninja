@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 // File Storage functions
@@ -66,8 +67,8 @@ export const uploadInvoiceFile = async (file: File, filePath: string, onProgress
     (async () => {
       try {
         const { data } = await supabase.storage.from('invoices').createSignedUploadUrl(filePath);
-        if (data?.signedURL) {
-          xhr.open('PUT', data.signedURL);
+        if (data?.signedUrl) { // Fixed from signedURL to signedUrl
+          xhr.open('PUT', data.signedUrl); // Fixed from signedURL to signedUrl
           xhr.send(file);
           onProgress(1); // Start with 1% to show initialization
         } else {

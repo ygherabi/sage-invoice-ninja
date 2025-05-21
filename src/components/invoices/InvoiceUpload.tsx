@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createInvoice, uploadInvoiceFile, getInvoiceFileUrl } from '@/lib/supabase';
@@ -86,13 +85,15 @@ const InvoiceUpload = () => {
       setProcessingStep('Téléversement du fichier...');
       console.log('Téléversement du fichier vers le stockage:', filePath);
       
-      const { error: uploadError } = await uploadInvoiceFile(file, filePath, (progress) => {
+      const result = await uploadInvoiceFile(file, filePath, (progress) => {
         setUploadProgress(progress);
       });
       
+      // Safely check for errors in the result
+      const uploadError = result && 'error' in result ? result.error : null;
       if (uploadError) {
         console.error('Erreur lors du téléversement du fichier:', uploadError);
-        throw new Error(uploadError.message);
+        throw new Error(uploadError instanceof Error ? uploadError.message : 'Upload error');
       }
       
       console.log('Fichier téléversé avec succès');

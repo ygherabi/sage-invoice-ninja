@@ -97,12 +97,16 @@ const UploadSection = () => {
         const filePath = `${user.id}/${invoiceData.id}/${Date.now()}.${fileExt}`;
         
         // Téléverser le fichier
-        const { data: fileData, error: fileError } = await uploadInvoiceFile(file, filePath);
+        const result = await uploadInvoiceFile(file, filePath);
         
-        if (fileError || !fileData) {
-          console.error("Erreur lors du téléversement du fichier:", fileError);
+        // Explicitly check the result structure
+        if (result && 'error' in result && result.error) {
+          console.error("Erreur lors du téléversement du fichier:", result.error);
           throw new Error("Échec du téléversement du fichier");
         }
+
+        // Safely access data if it exists
+        const fileData = result && 'data' in result ? result.data : null;
         
         // Mettre à jour la facture avec le chemin du fichier
         const { error: updateError } = await createInvoice({
