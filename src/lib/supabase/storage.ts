@@ -1,8 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Define a type for the upload result
+type UploadResult = {
+  data: any | null;
+  error: Error | null;
+};
+
 // File Storage functions
-export const uploadInvoiceFile = async (file: File, filePath: string, onProgress?: (progress: number) => void) => {
+export const uploadInvoiceFile = async (file: File, filePath: string, onProgress?: (progress: number) => void): Promise<UploadResult> => {
   console.log('Début du téléversement du fichier:', filePath);
   
   // Create a FormData to track progress
@@ -67,8 +73,8 @@ export const uploadInvoiceFile = async (file: File, filePath: string, onProgress
     (async () => {
       try {
         const { data } = await supabase.storage.from('invoices').createSignedUploadUrl(filePath);
-        if (data?.signedUrl) { // Fixed from signedURL to signedUrl
-          xhr.open('PUT', data.signedUrl); // Fixed from signedURL to signedUrl
+        if (data?.signedUrl) {
+          xhr.open('PUT', data.signedUrl);
           xhr.send(file);
           onProgress(1); // Start with 1% to show initialization
         } else {
@@ -77,7 +83,7 @@ export const uploadInvoiceFile = async (file: File, filePath: string, onProgress
         }
       } catch (error) {
         console.error('Error getting signed URL:', error);
-        resolve({ data: null, error });
+        resolve({ data: null, error: error instanceof Error ? error : new Error('Unknown error') });
       }
     })();
   });

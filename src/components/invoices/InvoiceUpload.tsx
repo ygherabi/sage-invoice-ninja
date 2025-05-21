@@ -89,11 +89,9 @@ const InvoiceUpload = () => {
         setUploadProgress(progress);
       });
       
-      // Safely check for errors in the result
-      const uploadError = result && 'error' in result ? result.error : null;
-      if (uploadError) {
-        console.error('Erreur lors du téléversement du fichier:', uploadError);
-        throw new Error(uploadError instanceof Error ? uploadError.message : 'Upload error');
+      if (result.error) {
+        console.error('Erreur lors du téléversement du fichier:', result.error);
+        throw new Error(result.error instanceof Error ? result.error.message : 'Upload error');
       }
       
       console.log('Fichier téléversé avec succès');

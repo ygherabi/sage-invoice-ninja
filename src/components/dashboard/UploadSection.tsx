@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,14 +98,13 @@ const UploadSection = () => {
         // Téléverser le fichier
         const result = await uploadInvoiceFile(file, filePath);
         
-        // Explicitly check the result structure
-        if (result && 'error' in result && result.error) {
+        if (result.error) {
           console.error("Erreur lors du téléversement du fichier:", result.error);
           throw new Error("Échec du téléversement du fichier");
         }
 
-        // Safely access data if it exists
-        const fileData = result && 'data' in result ? result.data : null;
+        // Safely access data
+        const fileData = result.data;
         
         // Mettre à jour la facture avec le chemin du fichier
         const { error: updateError } = await createInvoice({
