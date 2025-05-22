@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Define a type for the upload result
@@ -152,14 +151,10 @@ export const getInvoiceFileUrl = async (filePath: string) => {
   }
   
   try {
-    const { data, error } = await supabase.storage
+    // Cette méthode retourne maintenant { data: { publicUrl: string } } sans propriété error
+    const { data } = await supabase.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(filePath);
-    
-    if (error) {
-      console.error('Erreur lors de la récupération de l\'URL:', error);
-      return null;
-    }
     
     console.log('URL publique générée:', data.publicUrl);
     return data.publicUrl;
